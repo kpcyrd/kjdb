@@ -1,6 +1,7 @@
 pub mod alloc;
 pub mod errors;
 pub mod gaps;
+pub mod pool;
 pub mod reader;
 pub mod record;
 pub mod writer;
@@ -64,32 +65,32 @@ impl<T: Serialize + DeserializeOwned> Database<T> {
         Ok(DatabaseWriter { db, alloc })
     }
 
-    async fn read_at(&mut self, offset: u64, length: u64) -> Result<T> {
-        self.file.seek(SeekFrom::Start(offset)).await?;
+    async fn read_at(file: &mut File, offset: u64, length: u64) -> Result<T> {
+        file.seek(SeekFrom::Start(offset)).await?;
 
         let mut buf = vec![0; length as usize];
-        self.file.read_exact(&mut buf).await?;
+        file.read_exact(&mut buf).await?;
 
         let entry = serde_json::from_slice::<Entry<T>>(&buf)?;
         Ok(entry.value())
     }
 
-    async fn read_from_alloc(&mut self, alloc: &Alloc, key: &str) -> Result<Option<T>> {
+    async fn read_from_alloc(file: &mut File, alloc: &Alloc, key: &str) -> Result<Option<T>> {
         let Some(record) = alloc.get(key) else {
             return Ok(None);
         };
-        let value = self.read_at(record.offset, record.size.get()).await?;
+        let value = Self::read_at(file, record.offset, record.size.get()).await?;
         Ok(Some(value))
     }
 
     fn range_items_from_alloc<'a, R: RangeBounds<str>>(
-        &mut self,
+        file: &mut File,
         alloc: &'a Alloc,
         range: R,
     ) -> impl Stream<Item = Result<(&'a str, T)>> {
         async_stream::try_stream! {
             for (key, record) in alloc.range(range) {
-                let value = self.read_at(record.offset, record.size.get()).await?;
+                let value = Self::read_at(file, record.offset, record.size.get()).await?;
                 yield (key, value);
             }
         }

@@ -19,7 +19,7 @@ impl<T: Serialize + DeserializeOwned> DatabaseReader<T> {
     }
 
     pub async fn get(&mut self, key: &str) -> Result<Option<T>> {
-        self.db.read_from_alloc(&self.alloc, key).await
+        Database::read_from_alloc(&mut self.db.file, &self.alloc, key).await
     }
 
     /// Iterate over the keys currently in the database, in sorted order
@@ -32,7 +32,7 @@ impl<T: Serialize + DeserializeOwned> DatabaseReader<T> {
         &mut self,
         range: R,
     ) -> impl Stream<Item = Result<(&str, T)>> {
-        self.db.range_items_from_alloc(&self.alloc, range)
+        Database::range_items_from_alloc(&mut self.db.file, &self.alloc, range)
     }
 
     /// Unlocks the database file and returns the inner `Database` instance

@@ -13,11 +13,11 @@ members = ["fuzz"]
 [dependencies]
 async-stream = "0.3"
 fs4 = { version = "1", default-features = false, features = ["tokio"] }
-futures-util = { version = "0.3", default-features = false }
+futures-util = { version = "0.3", default-features = false, features = ["alloc"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 thiserror = "2"
-tokio = { version = "1", features = ["fs", "io-util", "rt"] }
+tokio = { version = "1", features = ["fs", "io-util", "rt", "sync"] }
 
 [dev-dependencies]
 async-tempfile = "0.8.0"

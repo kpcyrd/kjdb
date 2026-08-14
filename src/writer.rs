@@ -28,7 +28,7 @@ impl<T: Serialize + DeserializeOwned> DatabaseWriter<T> {
     }
 
     pub async fn get(&mut self, key: &str) -> Result<Option<T>> {
-        self.db.read_from_alloc(&self.alloc, key).await
+        Database::read_from_alloc(&mut self.db.file, &self.alloc, key).await
     }
 
     pub async fn write(&mut self, key: String, value: &T) -> Result<()> {
@@ -91,7 +91,7 @@ impl<T: Serialize + DeserializeOwned> DatabaseWriter<T> {
         &mut self,
         range: R,
     ) -> impl Stream<Item = Result<(&str, T)>> {
-        self.db.range_items_from_alloc(&self.alloc, range)
+        Database::range_items_from_alloc(&mut self.db.file, &self.alloc, range)
     }
 
     async fn add_gap(&mut self, offset: u64, size: NonZeroU64) -> Result<()> {
