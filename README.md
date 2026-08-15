@@ -23,12 +23,24 @@ if let Some(value) = db.get("hello").await? {
 }
 
 // Iterate over keys by prefix
-for key in db.range_keys("he".."hf") {
+for key in db.prefix_keys("hel") {
     println!("Key: {key:?}");
 }
 
 // Iterate over key-values by prefix
-let iter = db.range_items("he".."hf");
+let iter = db.prefix_items("hel");
+tokio::pin!(iter);
+while let Some((key, value)) = iter.try_next().await? {
+    println!("Key: {key:?}, Value: {value:?}");
+}
+
+// Iterate over keys by range
+for key in db.range_keys("h".."x") {
+    println!("Key: {key:?}");
+}
+
+// Iterate over key-values by range
+let iter = db.range_items("h".."x");
 tokio::pin!(iter);
 while let Some((key, value)) = iter.try_next().await? {
     println!("Key: {key:?}, Value: {value:?}");

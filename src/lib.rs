@@ -10,7 +10,7 @@ pub mod writer;
 use crate::alloc::Alloc;
 use crate::errors::*;
 use crate::reader::DatabaseReader;
-use crate::record::Entry;
+use crate::record::{Entry, Record};
 use crate::writer::DatabaseWriter;
 use fs4::AsyncFileExt;
 use futures_util::Stream;
@@ -84,17 +84,32 @@ impl<T: Serialize + DeserializeOwned> Database<T> {
         Ok(Some(value))
     }
 
+    fn items_from_iter<'a>(
+        file: &mut File,
+        iter: impl Iterator<Item = (&'a str, &'a Record)>,
+    ) -> impl Stream<Item = Result<(&'a str, T)>> {
+        async_stream::try_stream! {
+            for (key, record) in iter {
+                let value = Self::read_at(file, record.offset, record.size.get()).await?;
+                yield (key, value);
+            }
+        }
+    }
+
     fn range_items_from_alloc<'a, R: RangeBounds<str>>(
         file: &mut File,
         alloc: &'a Alloc,
         range: R,
     ) -> impl Stream<Item = Result<(&'a str, T)>> {
-        async_stream::try_stream! {
-            for (key, record) in alloc.range(range) {
-                let value = Self::read_at(file, record.offset, record.size.get()).await?;
-                yield (key, value);
-            }
-        }
+        Self::items_from_iter(file, alloc.range(range))
+    }
+
+    fn prefix_items_from_alloc<'a>(
+        file: &mut File,
+        alloc: &'a Alloc,
+        prefix: &str,
+    ) -> impl Stream<Item = Result<(&'a str, T)>> {
+        Self::items_from_iter(file, alloc.prefix(prefix))
     }
 
     async fn unlock(self) -> Result<Self> {

@@ -115,13 +115,27 @@ impl<'a, T: Serialize + DeserializeOwned> Reader<'a, T> {
         self.db.range_keys(range)
     }
 
-    /// Iterate over database keys and read their respective value from the database
+    /// Iterate over database keys and read their respective value
     pub fn range_items<R: RangeBounds<str>>(
         &mut self,
         range: R,
     ) -> impl Stream<Item = Result<(&str, T)>> {
         if let Some(file) = self.file.file.as_mut() {
             Database::range_items_from_alloc(file, &self.db.alloc, range).left_stream()
+        } else {
+            stream::once(async { Err(Error::ClosedPoolHandle) }).right_stream()
+        }
+    }
+
+    /// Iterate over database keys with a specific prefix, in sorted order
+    pub fn prefix_keys(&self, prefix: &str) -> impl Iterator<Item = &str> {
+        self.db.prefix_keys(prefix)
+    }
+
+    /// Iterate over database keys with a specific prefix and read their respective value
+    pub fn prefix_items(&mut self, prefix: &str) -> impl Stream<Item = Result<(&str, T)>> {
+        if let Some(file) = self.file.file.as_mut() {
+            Database::prefix_items_from_alloc(file, &self.db.alloc, prefix).left_stream()
         } else {
             stream::once(async { Err(Error::ClosedPoolHandle) }).right_stream()
         }
@@ -150,12 +164,22 @@ impl<'a, T: Serialize + DeserializeOwned> Writer<'a, T> {
         self.db.range_keys(range)
     }
 
-    /// Iterate over database keys and read their respective value from the database
+    /// Iterate over database keys and read their respective value
     pub fn range_items<R: RangeBounds<str>>(
         &mut self,
         range: R,
     ) -> impl Stream<Item = Result<(&str, T)>> {
         self.db.range_items(range)
+    }
+
+    /// Iterate over database keys with a specific prefix, in sorted order
+    pub fn prefix_keys(&self, prefix: &str) -> impl Iterator<Item = &str> {
+        self.db.prefix_keys(prefix)
+    }
+
+    /// Iterate over database keys with a specific prefix and read their respective value
+    pub fn prefix_items(&mut self, prefix: &str) -> impl Stream<Item = Result<(&str, T)>> {
+        self.db.prefix_items(prefix)
     }
 }
 

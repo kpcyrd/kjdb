@@ -86,12 +86,22 @@ impl<T: Serialize + DeserializeOwned> DatabaseWriter<T> {
         self.alloc.range(range).map(|(k, _v)| k)
     }
 
-    /// Iterate over database keys and read their respective value from the database
+    /// Iterate over database keys and read their respective value
     pub fn range_items<R: RangeBounds<str>>(
         &mut self,
         range: R,
     ) -> impl Stream<Item = Result<(&str, T)>> {
         Database::range_items_from_alloc(&mut self.db.file, &self.alloc, range)
+    }
+
+    /// Iterate over database keys with a specific prefix, in sorted order
+    pub fn prefix_keys(&self, prefix: &str) -> impl Iterator<Item = &str> {
+        self.alloc.prefix(prefix).map(|(k, _v)| k)
+    }
+
+    /// Iterate over database keys with a specific prefix and read their respective value
+    pub fn prefix_items(&mut self, prefix: &str) -> impl Stream<Item = Result<(&str, T)>> {
+        Database::prefix_items_from_alloc(&mut self.db.file, &self.alloc, prefix)
     }
 
     async fn add_gap(&mut self, offset: u64, size: NonZeroU64) -> Result<()> {

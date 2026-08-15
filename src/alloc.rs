@@ -5,7 +5,7 @@ use serde::Deserialize;
 use std::collections::{BTreeMap, btree_map};
 use std::mem;
 use std::num::NonZeroU64;
-use std::ops::RangeBounds;
+use std::ops::{Bound, RangeBounds};
 use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncSeek, AsyncSeekExt, BufReader};
 
 #[derive(Debug, Default, PartialEq)]
@@ -74,6 +74,11 @@ impl Alloc {
 
     pub fn range<R: RangeBounds<str>>(&self, range: R) -> impl Iterator<Item = (&str, &Record)> {
         self.map.range(range).map(|(k, v)| (k.as_str(), v))
+    }
+
+    pub fn prefix(&self, prefix: &str) -> impl Iterator<Item = (&str, &Record)> {
+        self.range((Bound::Included(prefix), Bound::Unbounded))
+            .take_while(move |(k, _v)| k.starts_with(prefix))
     }
 }
 
