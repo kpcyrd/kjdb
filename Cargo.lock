@@ -223,7 +223,6 @@ version = "0.0.0"
 dependencies = [
  "async-tempfile",
  "env_logger",
- "futures-util",
  "kjdb",
  "libfuzzer-sys",
  "log",

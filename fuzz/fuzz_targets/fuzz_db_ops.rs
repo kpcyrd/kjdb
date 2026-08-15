@@ -1,7 +1,7 @@
 #![no_main]
 
-use futures_util::TryStreamExt;
 use kjdb::errors::*;
+use kjdb::futures::TryStreamExt;
 use kjdb::writer::DatabaseWriter;
 use libfuzzer_sys::fuzz_target;
 use log::{debug, info};

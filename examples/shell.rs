@@ -1,6 +1,6 @@
-use futures_util::TryStreamExt;
 use kjdb::Database;
 use kjdb::errors::*;
+use kjdb::futures::TryStreamExt;
 use std::env;
 use std::ops::Bound;
 use tokio::io::{self, AsyncBufReadExt, AsyncWriteExt, BufReader};

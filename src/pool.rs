@@ -1,9 +1,8 @@
 use crate::Database;
 use crate::errors::*;
+use crate::futures::{Stream, StreamExt, TryStreamExt};
 use crate::writer::DatabaseWriter;
-use futures_util::TryStreamExt;
 use futures_util::stream::{self, FuturesUnordered};
-use futures_util::{Stream, StreamExt};
 use serde::{Serialize, de::DeserializeOwned};
 use std::ops::RangeBounds;
 use std::path::Path;

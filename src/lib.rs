@@ -1,5 +1,6 @@
 pub mod alloc;
 pub mod errors;
+pub mod futures;
 pub mod gaps;
 pub mod pool;
 pub mod reader;

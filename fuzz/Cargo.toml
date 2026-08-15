@@ -10,7 +10,6 @@ cargo-fuzz = true
 [dependencies]
 async-tempfile = "0.8"
 env_logger = { version = "0.11", default-features = false }
-futures-util = { version = "0.3", default-features = false }
 libfuzzer-sys = "0.4"
 log = "0.4"
 rand = { version = "0.10", default-features = false, features = ["alloc", "chacha"] }
