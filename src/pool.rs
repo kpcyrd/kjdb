@@ -151,8 +151,8 @@ impl<'a, T: Serialize + DeserializeOwned> Writer<'a, T> {
         self.db.get(key).await
     }
 
-    pub async fn write(&mut self, key: String, value: &T) -> Result<()> {
-        self.db.write(key, value).await
+    pub async fn put(&mut self, key: String, value: &T) -> Result<()> {
+        self.db.put(key, value).await
     }
 
     pub async fn delete(&mut self, key: &str) -> Result<()> {
@@ -198,7 +198,7 @@ mod tests {
 
         {
             let mut w = pool.writer().await;
-            w.write("key1".to_string(), &"hello".to_string())
+            w.put("key1".to_string(), &"hello".to_string())
                 .await
                 .unwrap();
         }
@@ -213,7 +213,7 @@ mod tests {
 
         {
             let mut w = pool.writer().await;
-            w.write("key1".to_string(), &"hello".to_string())
+            w.put("key1".to_string(), &"hello".to_string())
                 .await
                 .unwrap();
         }

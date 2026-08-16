@@ -30,12 +30,12 @@ async fn setup() -> TempFile {
 
 async fn test<D: Db<String>>(mut db: D, path: &Path) {
     assert_eq!(db.get("hello").await.unwrap().as_deref(), Some("world"));
-    db.write("hello".to_string(), &"ohai!".to_string())
+    db.put("hello".to_string(), &"ohai!".to_string())
         .await
         .unwrap();
 
     assert_eq!(db.get("foo").await.unwrap().as_deref(), Some("bar"));
-    db.write("foo".to_string(), &"".to_string()).await.unwrap();
+    db.put("foo".to_string(), &"".to_string()).await.unwrap();
 
     assert_eq!(db.get("404").await.unwrap().as_deref(), None);
 
@@ -48,7 +48,7 @@ async fn test<D: Db<String>>(mut db: D, path: &Path) {
 trait Db<T> {
     async fn get(&mut self, key: &str) -> Result<Option<T>>;
 
-    async fn write(&mut self, key: String, value: &T) -> Result<()>;
+    async fn put(&mut self, key: String, value: &T) -> Result<()>;
 }
 
 impl Db<String> for DatabaseWriter<String> {
@@ -56,8 +56,8 @@ impl Db<String> for DatabaseWriter<String> {
         self.get(key).await
     }
 
-    async fn write(&mut self, key: String, value: &String) -> Result<()> {
-        self.write(key, value).await
+    async fn put(&mut self, key: String, value: &String) -> Result<()> {
+        self.put(key, value).await
     }
 }
 
@@ -66,8 +66,8 @@ impl Db<String> for pool::Writer<'_, String> {
         self.get(key).await
     }
 
-    async fn write(&mut self, key: String, value: &String) -> Result<()> {
-        self.write(key, value).await
+    async fn put(&mut self, key: String, value: &String) -> Result<()> {
+        self.put(key, value).await
     }
 }
 

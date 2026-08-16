@@ -11,11 +11,11 @@ use kjdb::Database;
 let mut db = Database::<String>::open_writer("db.kjdb").await?;
 
 // Add entries to the database
-db.write("hello".to_string(), &"world".to_string()).await?;
-db.write("foo".to_string(), &"bar".to_string()).await?;
+db.put("hello".to_string(), &"world".to_string()).await?;
+db.put("foo".to_string(), &"bar".to_string()).await?;
 
 // Update a value
-db.write("hello".to_string(), &"again".to_string()).await?;
+db.put("hello".to_string(), &"again".to_string()).await?;
 
 // Read an entry (if it exists)
 if let Some(value) = db.get("hello").await? {

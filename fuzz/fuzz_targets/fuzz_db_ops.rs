@@ -87,7 +87,7 @@ fuzz_target!(|data: &[u8]| {
                     };
 
                     info!("Inserting key: {key:?} => {value:?}");
-                    db.write(key.clone(), &value).await.unwrap();
+                    db.put(key.clone(), &value).await.unwrap();
                     ctrl.insert(key, value);
                 }
                 (_, 3) => {

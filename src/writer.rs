@@ -31,7 +31,7 @@ impl<T: Serialize + DeserializeOwned> DatabaseWriter<T> {
         Database::read_from_alloc(&mut self.db.file, &self.alloc, key).await
     }
 
-    pub async fn write(&mut self, key: String, value: &T) -> Result<()> {
+    pub async fn put(&mut self, key: String, value: &T) -> Result<()> {
         let prev = if let Some(record) = self.alloc.get(&key) {
             self.write_at(record.offset, b"\t").await?;
             Some(record)
@@ -152,7 +152,7 @@ mod tests {
             .await
             .unwrap();
         assert_eq!(db.get("foo").await.unwrap(), None);
-        db.write("foo".to_string(), &"hello world!".to_string())
+        db.put("foo".to_string(), &"hello world!".to_string())
             .await
             .unwrap();
         assert_eq!(
@@ -174,12 +174,12 @@ mod tests {
             .unwrap();
         assert_eq!(db.get("foo").await.unwrap(), None);
 
-        db.write("foo".to_string(), &"hello one!".to_string())
+        db.put("foo".to_string(), &"hello one!".to_string())
             .await
             .unwrap();
         assert_eq!(db.get("foo").await.unwrap(), Some("hello one!".to_string()));
 
-        db.write("foo".to_string(), &"hello two!".to_string())
+        db.put("foo".to_string(), &"hello two!".to_string())
             .await
             .unwrap();
         assert_eq!(db.get("foo").await.unwrap(), Some("hello two!".to_string()));
@@ -202,19 +202,19 @@ mod tests {
         assert_eq!(db.get("foo").await.unwrap(), None);
 
         // 1
-        db.write("foo".to_string(), &"hello one!".to_string())
+        db.put("foo".to_string(), &"hello one!".to_string())
             .await
             .unwrap();
         assert_eq!(db.get("foo").await.unwrap(), Some("hello one!".to_string()));
 
         // 2
-        db.write("foo".to_string(), &"hello two!".to_string())
+        db.put("foo".to_string(), &"hello two!".to_string())
             .await
             .unwrap();
         assert_eq!(db.get("foo").await.unwrap(), Some("hello two!".to_string()));
 
         // 3
-        db.write("foo".to_string(), &"hello 3!".to_string())
+        db.put("foo".to_string(), &"hello 3!".to_string())
             .await
             .unwrap();
         assert_eq!(db.get("foo").await.unwrap(), Some("hello 3!".to_string()));
@@ -235,25 +235,25 @@ mod tests {
         assert_eq!(db.get("foo").await.unwrap(), None);
 
         // 1
-        db.write("foo".to_string(), &"hello one!".to_string())
+        db.put("foo".to_string(), &"hello one!".to_string())
             .await
             .unwrap();
         assert_eq!(db.get("foo").await.unwrap(), Some("hello one!".to_string()));
 
         // Add another entry to avoid truncating everything away
-        db.write("bar".to_string(), &"something".to_string())
+        db.put("bar".to_string(), &"something".to_string())
             .await
             .unwrap();
         assert_eq!(db.get("bar").await.unwrap(), Some("something".to_string()));
 
         // 2
-        db.write("foo".to_string(), &"hello two!".to_string())
+        db.put("foo".to_string(), &"hello two!".to_string())
             .await
             .unwrap();
         assert_eq!(db.get("foo").await.unwrap(), Some("hello two!".to_string()));
 
         // 3
-        db.write("foo".to_string(), &"hello 3!".to_string())
+        db.put("foo".to_string(), &"hello 3!".to_string())
             .await
             .unwrap();
         assert_eq!(db.get("foo").await.unwrap(), Some("hello 3!".to_string()));

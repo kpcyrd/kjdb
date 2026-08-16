@@ -49,13 +49,13 @@ async fn main() -> Result<()> {
                     }
                 }
             }
-            "write" => {
+            "put" => {
                 let Some((key, value)) = args.split_once(' ') else {
-                    eprintln!("Usage: write <key> <value>");
+                    eprintln!("Usage: put <key> <value>");
                     continue;
                 };
 
-                db.write(key.to_string(), &value.to_string()).await?;
+                db.put(key.to_string(), &value.to_string()).await?;
             }
             "delete" => {
                 for key in args.split_whitespace() {
