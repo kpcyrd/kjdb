@@ -62,13 +62,13 @@ async fn main() -> Result<()> {
                     db.delete(key).await?;
                 }
             }
-            "keys" => {
+            "range_keys" => {
                 let Some(range) = range(args) else {
-                    eprintln!("Usage: keys ..");
-                    eprintln!("Usage: keys <start>..");
-                    eprintln!("Usage: keys ..<end>");
-                    eprintln!("Usage: keys <start>..<end>");
-                    eprintln!("Usage: keys <start>..=<end>");
+                    eprintln!("Usage: range_keys ..");
+                    eprintln!("Usage: range_keys <start>..");
+                    eprintln!("Usage: range_keys ..<end>");
+                    eprintln!("Usage: range_keys <start>..<end>");
+                    eprintln!("Usage: range_keys <start>..=<end>");
                     continue;
                 };
 
@@ -77,13 +77,13 @@ async fn main() -> Result<()> {
                     stdout.write_all(b"\n").await?;
                 }
             }
-            "items" => {
+            "range_items" => {
                 let Some(range) = range(args) else {
-                    eprintln!("Usage: items ..");
-                    eprintln!("Usage: items <start>..");
-                    eprintln!("Usage: items ..<end>");
-                    eprintln!("Usage: items <start>..<end>");
-                    eprintln!("Usage: items <start>..=<end>");
+                    eprintln!("Usage: range_items ..");
+                    eprintln!("Usage: range_items <start>..");
+                    eprintln!("Usage: range_items ..<end>");
+                    eprintln!("Usage: range_items <start>..<end>");
+                    eprintln!("Usage: range_items <start>..=<end>");
                     continue;
                 };
 
@@ -96,7 +96,25 @@ async fn main() -> Result<()> {
                     stdout.write_all(b"\n").await?;
                 }
             }
-            _ => (),
+            "prefix_keys" => {
+                for key in db.prefix_keys(args) {
+                    stdout.write_all(key.as_bytes()).await?;
+                    stdout.write_all(b"\n").await?;
+                }
+            }
+            "prefix_items" => {
+                let iter = db.prefix_items(args);
+                tokio::pin!(iter);
+                while let Some((key, value)) = iter.try_next().await? {
+                    stdout.write_all(key.as_bytes()).await?;
+                    stdout.write_all(b"\n").await?;
+                    stdout.write_all(value.as_bytes()).await?;
+                    stdout.write_all(b"\n").await?;
+                }
+            }
+            unknown => {
+                eprintln!("Unrecognized command: {unknown:?}");
+            }
         }
     }
 
