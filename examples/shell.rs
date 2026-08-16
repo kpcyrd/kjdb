@@ -1,9 +1,10 @@
 use kjdb::Database;
 use kjdb::errors::*;
-use kjdb::futures::TryStreamExt;
+use kjdb::futures::{Stream, TryStreamExt};
 use std::env;
+use std::io::IsTerminal;
 use std::ops::Bound;
-use tokio::io::{self, AsyncBufReadExt, AsyncWriteExt, BufReader};
+use tokio::io::{self, AsyncBufReadExt, AsyncWrite, AsyncWriteExt, BufReader};
 
 fn range(args: &str) -> Option<(Bound<&str>, Bound<&str>)> {
     let (start, end) = args.split_once("..")?;
@@ -18,6 +19,30 @@ fn range(args: &str) -> Option<(Bound<&str>, Bound<&str>)> {
     })
 }
 
+async fn write_iter<W: AsyncWrite + Unpin>(
+    mut w: W,
+    iter: impl Iterator<Item = &str>,
+) -> Result<()> {
+    for key in iter {
+        w.write_all(key.as_bytes()).await?;
+        w.write_all(b"\n").await?;
+    }
+    Ok(())
+}
+
+async fn write_tuple_stream<W: AsyncWrite + Unpin>(
+    mut w: W,
+    mut stream: impl Stream<Item = Result<(&str, String)>> + Unpin,
+) -> Result<()> {
+    while let Some((key, value)) = stream.try_next().await? {
+        w.write_all(key.as_bytes()).await?;
+        w.write_all(b"\n").await?;
+        w.write_all(value.as_bytes()).await?;
+        w.write_all(b"\n").await?;
+    }
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() -> Result<()> {
     let Some(path) = env::args().nth(1) else {
@@ -27,13 +52,17 @@ async fn main() -> Result<()> {
 
     let mut db = Database::<String>::open_writer(&path).await?;
 
+    let interactive = std::io::stdin().is_terminal();
+
     let stdin = BufReader::new(io::stdin());
     let mut stdout = io::stdout();
     let mut lines = stdin.lines();
 
     loop {
-        stdout.write_all(b"> ").await?;
-        stdout.flush().await?;
+        if interactive {
+            stdout.write_all(b"> ").await?;
+            stdout.flush().await?;
+        }
 
         let Some(line) = lines.next_line().await? else {
             break;
@@ -72,10 +101,7 @@ async fn main() -> Result<()> {
                     continue;
                 };
 
-                for key in db.range_keys(range) {
-                    stdout.write_all(key.as_bytes()).await?;
-                    stdout.write_all(b"\n").await?;
-                }
+                write_iter(&mut stdout, db.range_keys(range)).await?;
             }
             "range_items" => {
                 let Some(range) = range(args) else {
@@ -89,28 +115,15 @@ async fn main() -> Result<()> {
 
                 let iter = db.range_items(range);
                 tokio::pin!(iter);
-                while let Some((key, value)) = iter.try_next().await? {
-                    stdout.write_all(key.as_bytes()).await?;
-                    stdout.write_all(b"\n").await?;
-                    stdout.write_all(value.as_bytes()).await?;
-                    stdout.write_all(b"\n").await?;
-                }
+                write_tuple_stream(&mut stdout, iter).await?;
             }
             "prefix_keys" => {
-                for key in db.prefix_keys(args) {
-                    stdout.write_all(key.as_bytes()).await?;
-                    stdout.write_all(b"\n").await?;
-                }
+                write_iter(&mut stdout, db.prefix_keys(args)).await?;
             }
             "prefix_items" => {
                 let iter = db.prefix_items(args);
                 tokio::pin!(iter);
-                while let Some((key, value)) = iter.try_next().await? {
-                    stdout.write_all(key.as_bytes()).await?;
-                    stdout.write_all(b"\n").await?;
-                    stdout.write_all(value.as_bytes()).await?;
-                    stdout.write_all(b"\n").await?;
-                }
+                write_tuple_stream(&mut stdout, iter).await?;
             }
             unknown => {
                 eprintln!("Unrecognized command: {unknown:?}");
@@ -118,8 +131,10 @@ async fn main() -> Result<()> {
         }
     }
 
-    stdout.write_all(b"\n").await?;
-    stdout.flush().await?;
+    if interactive {
+        stdout.write_all(b"\n").await?;
+        stdout.flush().await?;
+    }
 
     Ok(())
 }
