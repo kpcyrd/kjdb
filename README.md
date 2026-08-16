@@ -59,6 +59,12 @@ let db2 = Database::<String>::open_reader("db.kjdb").await?;
 assert_eq!(db1.get("hello").await?, db2.get("hello").await?);
 ```
 
+## Status
+
+- No further changes to the disk format are planned.
+- The initial scan (when opening a database) is not well optimized yet. You should expect it to take ~5ms when opening a database with 1,000 keys, each having a 512 byte value (see benchmarking section).
+- Reading and writing after the initial scan are already quite efficient, with limited room for significant further gains.
+
 ## Disk format
 
 An on-disk entry looks like this (quoted for clarity):
@@ -85,6 +91,16 @@ When the process dies during a write, it could recover from this state:
 The entry prefixed with `' '` would win over the entry prefixed with `'\t'` and the database would be consistent.
 
 Outdated entries (and otherwise unused space) is tracked by an allocator and reused for future writes.
+
+## Benchmarking
+
+Use the following to setup a database file to benchmark database opening:
+
+```sh
+cargo build --release --examples
+python3 -c 'for x in range(1_000): print(f"put hello{x} " + ("A"*512))' | target/release/examples/shell bench.db
+time target/release/examples/shell bench.db < /dev/null
+```
 
 ## Fuzzing
 
