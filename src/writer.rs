@@ -42,12 +42,15 @@ impl<T: Serialize + DeserializeOwned> DatabaseWriter<T> {
         let entry = Entry::new(key.to_string(), value);
         let json = serde_json::to_string(&entry)?;
         let key = entry.key();
-        let buf = format!(" {json}\n");
+        let buf = format!("\n{json}\n");
         let size = NonZeroU64::new(buf.len() as u64).unwrap(); // XXX: Due to our framing, this can never be zero
 
         // Write to file
         let offset = self.alloc.gaps.take_space(size);
         self.write_at(offset, buf.as_bytes()).await?;
+
+        // Mark record as fully written
+        self.write_at(offset, b" ").await?;
 
         // Add to map
         self.alloc.map.insert(key, Record::new(offset, size));
