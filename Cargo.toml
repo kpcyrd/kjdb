@@ -1,6 +1,6 @@
 [package]
 name = "kjdb"
-version = "0.1.0"
+version = "0.1.1"
 description = "Keyed JSON Database"
 authors = ["kpcyrd <git@rxv.cc>"]
 license = "Apache-2.0 OR MIT"
