@@ -15,11 +15,16 @@ pub struct DatabaseReader<T: Serialize + DeserializeOwned> {
 }
 
 impl<T: Serialize + DeserializeOwned> DatabaseReader<T> {
+    /// Open an existing database for reading
+    ///
+    /// The file must already exist, afterwards a read-lock is acquired and the
+    /// database is scanned for existing records, preparing it for read operations.
     pub async fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
         let file = tokio::fs::OpenOptions::new().read(true).open(path).await?;
         Database::new(file).scan_read_only().await
     }
 
+    /// Read the value for the given key from the database
     pub async fn get(&mut self, key: &str) -> Result<Option<T>> {
         Database::read_from_alloc(&mut self.db.file, &self.alloc, key).await
     }

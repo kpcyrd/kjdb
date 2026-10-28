@@ -21,6 +21,9 @@ pub struct Pool<T: Serialize + DeserializeOwned> {
 }
 
 impl<T: Serialize + DeserializeOwned> Pool<T> {
+    /// Create a new database pool
+    ///
+    /// Takes an existing DatabaseWriter and an iterator over file handles for reading.
     pub fn new<I: IntoIterator<Item = File>>(db: DatabaseWriter<T>, readers: I) -> Self {
         let (tx, rx) = mpsc::unbounded_channel();
         for file in readers {
@@ -33,6 +36,9 @@ impl<T: Serialize + DeserializeOwned> Pool<T> {
         }
     }
 
+    /// Open a database file and sets up a pool
+    ///
+    /// Takes the path to the database file and the number of reader handles to create.
     pub async fn open<P: AsRef<Path>>(path: P, num_readers: usize) -> Result<Self> {
         let db = DatabaseWriter::<T>::open(&path).await?;
 
@@ -49,6 +55,9 @@ impl<T: Serialize + DeserializeOwned> Pool<T> {
         Ok(db)
     }
 
+    /// Takes a reader handle from the pool
+    ///
+    /// May return None if the pool is shutting down
     pub async fn reader(&self) -> Option<Reader<'_, T>> {
         let file = self.pool.lock().await.recv().await?;
         Some(Reader {
@@ -60,12 +69,14 @@ impl<T: Serialize + DeserializeOwned> Pool<T> {
         })
     }
 
+    /// Takes a writer handle from the pool
     pub async fn writer(&self) -> Writer<'_, T> {
         Writer {
             db: self.db.write().await,
         }
     }
 
+    /// Try to acquire a reader handle from the pool immediately, without blocking
     pub fn try_reader(&self) -> Option<Reader<'_, T>> {
         let file = self.pool.try_lock().ok()?.try_recv().ok()?;
         Some(Reader {
@@ -77,12 +88,14 @@ impl<T: Serialize + DeserializeOwned> Pool<T> {
         })
     }
 
+    /// Try to acquire a writer handle from the pool immediately, without blocking
     pub fn try_writer(&self) -> Option<Writer<'_, T>> {
         Some(Writer {
             db: self.db.try_write().ok()?,
         })
     }
 
+    /// Take the inner DatabaseWriter back out of the pool
     pub fn into_inner(self) -> DatabaseWriter<T> {
         self.db.into_inner()
     }
@@ -107,6 +120,7 @@ pub struct Reader<'a, T: Serialize + DeserializeOwned> {
 }
 
 impl<'a, T: Serialize + DeserializeOwned> Reader<'a, T> {
+    /// Read the value for the given key from the database
     pub async fn get(&mut self, key: &str) -> Result<Option<T>> {
         let file = self.file.file.as_mut().ok_or(Error::ClosedPoolHandle)?;
         Database::read_from_alloc(file, &self.db.alloc, key).await
@@ -154,6 +168,7 @@ pub struct Writer<'a, T: Serialize + DeserializeOwned> {
 }
 
 impl<'a, T: Serialize + DeserializeOwned> Writer<'a, T> {
+    /// Read the value for the given key from the database
     pub async fn get(&mut self, key: &str) -> Result<Option<T>> {
         self.db.get(key).await
     }
@@ -163,10 +178,12 @@ impl<'a, T: Serialize + DeserializeOwned> Writer<'a, T> {
         self.db.exists(key)
     }
 
+    /// Write a key-value pair to the database, replacing any existing value for the key
     pub async fn put(&mut self, key: String, value: &T) -> Result<()> {
         self.db.put(key, value).await
     }
 
+    /// Delete a key-value pair from the database
     pub async fn delete(&mut self, key: &str) -> Result<()> {
         self.db.delete(key).await
     }

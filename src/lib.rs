@@ -43,12 +43,19 @@ impl<T: Serialize + DeserializeOwned> Database<T> {
         }
     }
 
-    /// Open an existing database file for reading
+    /// Open an existing database for reading
+    ///
+    /// The file must already exist, afterwards a read-lock is acquired and the
+    /// database is scanned for existing records, preparing it for read operations.
     pub async fn open_reader<P: AsRef<Path>>(path: P) -> Result<DatabaseReader<T>> {
         DatabaseReader::<T>::open(path).await
     }
 
-    /// Open a database file for reading and writing, creating it if it doesn't exist
+    /// Open an existing database for reading and writing
+    ///
+    /// The file is created if it doesn't exist yet, afterwards a write-lock is
+    /// acquired and the database is scanned for existing records, preparing it for
+    /// read and write operations.
     pub async fn open_writer<P: AsRef<Path>>(path: P) -> Result<DatabaseWriter<T>> {
         DatabaseWriter::<T>::open(path).await
     }

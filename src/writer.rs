@@ -18,6 +18,11 @@ pub struct DatabaseWriter<T: Serialize + DeserializeOwned> {
 }
 
 impl<T: Serialize + DeserializeOwned> DatabaseWriter<T> {
+    /// Open an existing database for reading and writing
+    ///
+    /// The file is created if it doesn't exist yet, afterwards a write-lock is
+    /// acquired and the database is scanned for existing records, preparing it for
+    /// read and write operations.
     pub async fn open<P: AsRef<Path>>(path: P) -> Result<Self> {
         let file = tokio::fs::OpenOptions::new()
             .read(true)
@@ -29,6 +34,7 @@ impl<T: Serialize + DeserializeOwned> DatabaseWriter<T> {
         Database::new(file).scan_read_write().await
     }
 
+    /// Read the value for the given key from the database
     pub async fn get(&mut self, key: &str) -> Result<Option<T>> {
         Database::read_from_alloc(&mut self.db.file, &self.alloc, key).await
     }
@@ -38,6 +44,7 @@ impl<T: Serialize + DeserializeOwned> DatabaseWriter<T> {
         self.alloc.map.contains_key(key)
     }
 
+    /// Write a key-value pair to the database, replacing any existing value for the key
     pub async fn put(&mut self, key: String, value: &T) -> Result<()> {
         let prev = if let Some(record) = self.alloc.get(&key) {
             self.write_at(record.offset, b"\t").await?;
@@ -70,6 +77,7 @@ impl<T: Serialize + DeserializeOwned> DatabaseWriter<T> {
         Ok(())
     }
 
+    /// Delete a key-value pair from the database
     pub async fn delete(&mut self, key: &str) -> Result<()> {
         let Some(record) = self.alloc.get(key) else {
             return Ok(());
