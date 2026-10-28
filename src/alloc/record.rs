@@ -4,7 +4,7 @@ use std::num::NonZeroU64;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Record {
-    pub tie: Tie,
+    pub tie: TieBreaker,
     pub offset: u64,
     pub size: NonZeroU64,
 }
@@ -12,7 +12,7 @@ pub struct Record {
 impl Record {
     pub fn new(offset: u64, size: NonZeroU64) -> Self {
         Record {
-            tie: Tie::Live,
+            tie: TieBreaker::Win,
             offset,
             size,
         }
@@ -20,18 +20,18 @@ impl Record {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum Tie {
-    Live,
-    Unstaged,
+pub enum TieBreaker {
+    Win,
+    Lose,
 }
 
-impl Tie {
+impl TieBreaker {
     pub fn detect(record: &str) -> Option<(Self, &str)> {
         let mut chars = record.chars();
         let tie = chars.next()?;
         let tie = match tie {
-            ' ' => Tie::Live,
-            '\t' => Tie::Unstaged,
+            ' ' => TieBreaker::Win,
+            '\t' => TieBreaker::Lose,
             _ => return None,
         };
         Some((tie, chars.as_str()))
@@ -83,9 +83,9 @@ mod tests {
 
     #[test]
     fn test_tie_detect() {
-        assert_eq!(Tie::detect(" {}"), Some((Tie::Live, "{}")));
-        assert_eq!(Tie::detect("\t{}"), Some((Tie::Unstaged, "{}")));
-        assert_eq!(Tie::detect("x"), None);
+        assert_eq!(TieBreaker::detect(" {}"), Some((TieBreaker::Win, "{}")));
+        assert_eq!(TieBreaker::detect("\t{}"), Some((TieBreaker::Lose, "{}")));
+        assert_eq!(TieBreaker::detect("x"), None);
     }
 
     #[test]

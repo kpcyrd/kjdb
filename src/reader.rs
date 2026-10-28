@@ -1,3 +1,5 @@
+//! Read-only database handle
+
 use crate::Database;
 use crate::alloc::Alloc;
 use crate::errors::*;

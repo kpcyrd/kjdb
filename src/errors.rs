@@ -1,3 +1,5 @@
+//! Error types
+
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
     #[error(transparent)]

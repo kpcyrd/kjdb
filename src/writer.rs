@@ -1,7 +1,9 @@
+//! Read-write database handle
+
 use crate::Database;
 use crate::alloc::Alloc;
+use crate::alloc::record::{Entry, Record};
 use crate::errors::*;
-use crate::record::{Entry, Record};
 use futures_util::Stream;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
@@ -40,7 +42,7 @@ impl<T: Serialize + DeserializeOwned> DatabaseWriter<T> {
         };
 
         let entry = Entry::new(key.to_string(), value);
-        let json = serde_json::to_string(&entry)?;
+        let json = entry.serialize()?;
         let key = entry.key();
         let buf = format!("\n{json}\n");
         let size = NonZeroU64::new(buf.len() as u64).unwrap(); // XXX: Due to our framing, this can never be zero

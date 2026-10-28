@@ -1,16 +1,16 @@
+#![doc = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/README.md"))]
+
 pub mod alloc;
 pub mod errors;
 pub mod futures;
-pub mod gaps;
 pub mod pool;
 pub mod reader;
-pub mod record;
 pub mod writer;
 
 use crate::alloc::Alloc;
+use crate::alloc::record::{Entry, Record};
 use crate::errors::*;
 use crate::reader::DatabaseReader;
-use crate::record::{Entry, Record};
 use crate::writer::DatabaseWriter;
 use fs4::AsyncFileExt;
 use futures_util::Stream;
@@ -23,6 +23,7 @@ use tokio::io::{AsyncReadExt, AsyncSeekExt, SeekFrom};
 
 pub use serde_json::Value as JsonValue;
 
+/// A database handle that can be used to read and write records
 #[derive(Debug)]
 pub struct Database<T: Serialize + DeserializeOwned> {
     file: File,
@@ -30,6 +31,11 @@ pub struct Database<T: Serialize + DeserializeOwned> {
 }
 
 impl<T: Serialize + DeserializeOwned> Database<T> {
+    /// Create a new database handle from an open file
+    ///
+    /// This doesn't do any IO, you need to call `scan_read_only` or
+    /// `scan_read_write` to acquire a read or write lock on the file and scan
+    /// for existing records before you can perform any reads or writes.
     pub fn new(file: File) -> Self {
         Database {
             file,
@@ -37,14 +43,17 @@ impl<T: Serialize + DeserializeOwned> Database<T> {
         }
     }
 
+    /// Open an existing database file for reading
     pub async fn open_reader<P: AsRef<Path>>(path: P) -> Result<DatabaseReader<T>> {
         DatabaseReader::<T>::open(path).await
     }
 
+    /// Open a database file for reading and writing, creating it if it doesn't exist
     pub async fn open_writer<P: AsRef<Path>>(path: P) -> Result<DatabaseWriter<T>> {
         DatabaseWriter::<T>::open(path).await
     }
 
+    /// Acquire a read lock on a database file handle and scan for existing records
     pub async fn scan_read_only(self) -> Result<DatabaseReader<T>> {
         let file = self.file;
 
@@ -55,6 +64,7 @@ impl<T: Serialize + DeserializeOwned> Database<T> {
         Ok(DatabaseReader { db, alloc })
     }
 
+    /// Acquire a write lock on a database file handle and scan for existing records
     pub async fn scan_read_write(self) -> Result<DatabaseWriter<T>> {
         let file = self.file;
 

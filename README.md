@@ -4,7 +4,7 @@ A database engine that operates on JSON lines.
 
 When all you need is an async, atomic, in-process, disk-persistent, key-value store and sqlite is too much work. Works with any serde serializable type. No database schema, only `#[derive(Serialize, Deserialize)]`.
 
-```rust
+```rust,ignore
 use kjdb::Database;
 
 // Open or create a new database, define the value as `String`
@@ -69,7 +69,7 @@ assert_eq!(db1.get("hello").await?, db2.get("hello").await?);
 
 An on-disk entry looks like this (quoted for clarity):
 
-```rust
+```rust,ignore
 " {\"hello\":\"world\"}\n"
 ```
 
@@ -77,7 +77,7 @@ Each line is prefixed with either `' '` or `'\t'` as a tie-breaker for interrupt
 
 Before a key is updated to a new value, the old line (if any) gets it's first byte changed to `'\t'`:
 
-```rust
+```rust,ignore
 "\t{\"hello\":\"world\"}\n"
 ```
 
@@ -106,7 +106,7 @@ time target/release/examples/shell bench.db < /dev/null
 
 Use libfuzzer to generate database operations and assert the database state is consistent with a control state:
 
-```
+```sh
 cargo fuzz run --release fuzz_db_ops -s none
 ```
 

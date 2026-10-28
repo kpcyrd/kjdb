@@ -1,3 +1,5 @@
+//! Share a database handle between multiple threads, allowing concurrent readers
+
 use crate::Database;
 use crate::errors::*;
 use crate::futures::{Stream, StreamExt, TryStreamExt};

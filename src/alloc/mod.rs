@@ -1,6 +1,11 @@
+//! Track allocations and available space in the database file
+
+pub(crate) mod gaps;
+pub mod record;
+
+use self::gaps::Gaps;
+use self::record::{Record, TieBreaker};
 use crate::errors::*;
-use crate::gaps::Gaps;
-use crate::record::{self, Record, Tie};
 use serde::Deserialize;
 use std::collections::{BTreeMap, btree_map};
 use std::mem;
@@ -11,7 +16,7 @@ use tokio::io::{AsyncBufReadExt, AsyncRead, AsyncSeek, AsyncSeekExt, BufReader};
 #[derive(Debug, Default, PartialEq)]
 pub struct Alloc {
     pub map: BTreeMap<String, Record>,
-    pub gaps: Gaps,
+    pub(crate) gaps: Gaps,
 }
 
 impl Alloc {
@@ -33,7 +38,7 @@ impl Alloc {
 
             let offset = alloc.gaps.file_end;
 
-            if let Some((tie, json)) = Tie::detect(&buf)
+            if let Some((tie, json)) = TieBreaker::detect(&buf)
                 && let Ok(entry) = record::Entry::<T>::deserialize(json)
             {
                 let entry = alloc.map.entry(entry.key());
@@ -45,7 +50,7 @@ impl Alloc {
                     btree_map::Entry::Occupied(mut o) => {
                         let existing = o.get_mut();
 
-                        if existing.tie == Tie::Unstaged && tie == Tie::Live {
+                        if existing.tie == TieBreaker::Lose && tie == TieBreaker::Win {
                             // replace existing record, mark previous space as available for allocations
                             let previous = mem::replace(existing, Record { tie, offset, size });
                             alloc.gaps.add_gap(previous.offset, previous.size);
@@ -104,7 +109,7 @@ mod tests {
                 map: BTreeMap::from([(
                     "foo".to_string(),
                     Record {
-                        tie: Tie::Live,
+                        tie: TieBreaker::Win,
                         offset: 0,
                         size: NonZeroU64::new(11).unwrap(),
                     },
@@ -129,7 +134,7 @@ mod tests {
                     (
                         "foo".to_string(),
                         Record {
-                            tie: Tie::Live,
+                            tie: TieBreaker::Win,
                             offset: 0,
                             size: NonZeroU64::new(11).unwrap(),
                         },
@@ -137,7 +142,7 @@ mod tests {
                     (
                         "bar".to_string(),
                         Record {
-                            tie: Tie::Live,
+                            tie: TieBreaker::Win,
                             offset: 11,
                             size: NonZeroU64::new(11).unwrap(),
                         },
@@ -162,7 +167,7 @@ mod tests {
                 map: BTreeMap::from([(
                     "foo".to_string(),
                     Record {
-                        tie: Tie::Live,
+                        tie: TieBreaker::Win,
                         offset: 0,
                         size: NonZeroU64::new(11).unwrap(),
                     },
@@ -186,7 +191,7 @@ mod tests {
                 map: BTreeMap::from([(
                     "foo".to_string(),
                     Record {
-                        tie: Tie::Live,
+                        tie: TieBreaker::Win,
                         offset: 11,
                         size: NonZeroU64::new(11).unwrap(),
                     },
@@ -212,7 +217,7 @@ mod tests {
                 map: BTreeMap::from([(
                     "foo".to_string(),
                     Record {
-                        tie: Tie::Live,
+                        tie: TieBreaker::Win,
                         offset: 0,
                         size: NonZeroU64::new(20).unwrap(),
                     },
@@ -238,7 +243,7 @@ mod tests {
                 map: BTreeMap::from([(
                     "foo".to_string(),
                     Record {
-                        tie: Tie::Live,
+                        tie: TieBreaker::Win,
                         offset: 22,
                         size: NonZeroU64::new(22).unwrap(),
                     },
@@ -264,7 +269,7 @@ mod tests {
                 map: BTreeMap::from([(
                     "foo".to_string(),
                     Record {
-                        tie: Tie::Live,
+                        tie: TieBreaker::Win,
                         offset: 32,
                         size: NonZeroU64::new(22).unwrap(),
                     },
