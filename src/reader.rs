@@ -24,6 +24,11 @@ impl<T: Serialize + DeserializeOwned> DatabaseReader<T> {
         Database::read_from_alloc(&mut self.db.file, &self.alloc, key).await
     }
 
+    /// Check if a key exists in the database
+    pub fn exists(&self, key: &str) -> bool {
+        self.alloc.map.contains_key(key)
+    }
+
     /// Iterate over the keys currently in the database, in sorted order
     pub fn range_keys<R: RangeBounds<str>>(&self, range: R) -> impl Iterator<Item = &str> {
         self.alloc.range(range).map(|(k, _v)| k)

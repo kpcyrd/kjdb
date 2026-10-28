@@ -33,6 +33,11 @@ impl<T: Serialize + DeserializeOwned> DatabaseWriter<T> {
         Database::read_from_alloc(&mut self.db.file, &self.alloc, key).await
     }
 
+    /// Check if a key exists in the database
+    pub fn exists(&self, key: &str) -> bool {
+        self.alloc.map.contains_key(key)
+    }
+
     pub async fn put(&mut self, key: String, value: &T) -> Result<()> {
         let prev = if let Some(record) = self.alloc.get(&key) {
             self.write_at(record.offset, b"\t").await?;

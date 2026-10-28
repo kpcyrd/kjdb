@@ -112,6 +112,11 @@ impl<'a, T: Serialize + DeserializeOwned> Reader<'a, T> {
         Database::read_from_alloc(file, &self.db.alloc, key).await
     }
 
+    /// Check if a key exists in the database
+    pub fn exists(&self, key: &str) -> bool {
+        self.db.exists(key)
+    }
+
     /// Iterate over the keys currently in the database, in sorted order
     pub fn range_keys<R: RangeBounds<str>>(&self, range: R) -> impl Iterator<Item = &str> {
         self.db.range_keys(range)
@@ -151,6 +156,11 @@ pub struct Writer<'a, T: Serialize + DeserializeOwned> {
 impl<'a, T: Serialize + DeserializeOwned> Writer<'a, T> {
     pub async fn get(&mut self, key: &str) -> Result<Option<T>> {
         self.db.get(key).await
+    }
+
+    /// Check if a key exists in the database
+    pub fn exists(&self, key: &str) -> bool {
+        self.db.exists(key)
     }
 
     pub async fn put(&mut self, key: String, value: &T) -> Result<()> {
